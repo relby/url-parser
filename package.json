@@ -15,5 +15,8 @@
     "joi": "^17.6.0",
     "node-html-parser": "^5.4.2-0",
     "pdfkit": "^0.13.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.19"
   }
 }
