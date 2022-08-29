@@ -6,13 +6,17 @@ const { Readable } = require('stream')
 const PDFDocument = require('pdfkit')
 const { parse } = require('node-html-parser')
 
-const getMost3Frequent = (root) => {
+const ignoreTags = ['SCRIPT', 'STYLE', 'META', 'LINK'];
+
+const get3MostFrequentWords = (node) => {
     const map = new Map();
-    const traverseHTML = (root) => {
-        const { childNodes, parentNode } = root;
-        const isValidTag = !parentNode.tagName.includes('SCRIPT') && parentNode.tagName !== 'STYLE';
-        if (isValidTag && !childNodes.length && /\p{L}+/u.test(root.text)) {
-            for (const word of root.text.split(/\P{L}+/u)) {
+    const traverseHTML = (node) => {
+        const { childNodes, parentNode } = node;
+        const isValid = !childNodes.length
+            && !ignoreTags.includes(parentNode.tagName)
+            && /\p{L}+/u.test(node.text);
+        if (isValid) {
+            for (const word of node.text.split(/\P{L}+/u)) {
                 if (word.length <= 4) continue;
                 const count = map.get(word) ?? 0;
                 map.set(word, count + 1);
@@ -22,7 +26,7 @@ const getMost3Frequent = (root) => {
             traverseHTML(childNode);
         }
     }
-    traverseHTML(root);
+    traverseHTML(node);
     return [...map]
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
@@ -44,14 +48,15 @@ const init = async () => {
             const doc = new PDFDocument();
             doc.font('./font.ttf').fontSize(16);
             for (const url of urls) {
-                let color;
-                let text;
+                let color, text;
                 try {
                     const html = parse(await (await fetch(url)).text());
-                    const body = html.querySelector('body')
+                    const body = html.querySelector('body');
 
-                    color = 'blue'
-                    text = getMost3Frequent(body).join(' | ')
+                    const words = get3MostFrequentWords(body);
+
+                    color = 'blue';
+                    text = words.length ? words.join(' | ') : 'No words have been found';
 
                 } catch (e) {
                     if (e instanceof TypeError && e.message === 'fetch failed') {
@@ -86,7 +91,7 @@ const init = async () => {
             validate: {
                 payload: Joi.array().items(
                     Joi.string().uri()
-                )
+                ).min(1)
             }
         }
     })
