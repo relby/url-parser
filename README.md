@@ -15,7 +15,7 @@ $ npm start
 ```
 
 ### или можно запустить через [docker](https://docker.com)
-Создание docker image из `Dockerfile`
+Создание docker образа из `Dockerfile`
 ```console
 $ docker build . -t url-parser
 ```
