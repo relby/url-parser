@@ -36,15 +36,23 @@ const get3MostFrequentWords = (node) => {
 const init = async () => {
 
     const server = Hapi.server({
-        port: 3000,
-        host: 'localhost'
+        port: process.env.PORT ?? 3000,
+        host: process.env.HOST ?? 'localhost'
     });
+
+    server.route({
+        method: 'GET',
+        path: '/',
+        handler: async (request, h) => {
+            return `Make a POST request with your urls to this route`
+        }
+    })
 
     server.route({
         method: 'POST',
         path: '/',
         handler: async (request, h) => {
-            const { payload: urls } = request
+            const { urls } = request.payload
             const doc = new PDFDocument();
             doc.font('./font.ttf').fontSize(16);
             for (const url of urls) {
@@ -75,7 +83,7 @@ const init = async () => {
                     .underline(doc.x, doc.y, doc.widthOfString(url), doc.currentLineHeight(), { color })
                     .text(url)
                     .moveDown(0.2);
-                // Put the most 3 frequent words on the pdf
+                // Put the 3 most frequent words on the pdf
                 doc
                     .fillColor('black')
                     .text(text)
@@ -89,9 +97,11 @@ const init = async () => {
         },
         options: {
             validate: {
-                payload: Joi.array().items(
-                    Joi.string().uri()
-                ).min(1)
+                payload: Joi.object({
+                    urls: Joi.array().items(
+                        Joi.string().uri()
+                    ).min(1)
+                })
             }
         }
     })
@@ -101,8 +111,11 @@ const init = async () => {
 };
 
 process.on('unhandledRejection', (err) => {
-    console.log(err);
+    console.error(err);
     process.exit(1);
 });
 
-init();
+init().catch(err => {
+    console.error(err);
+    process.exit(1);
+});
