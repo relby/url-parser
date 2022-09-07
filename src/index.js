@@ -6,7 +6,7 @@ const { Readable } = require('stream')
 const PDFDocument = require('pdfkit')
 const { parse } = require('node-html-parser')
 
-const ignoreTags = ['SCRIPT', 'STYLE', 'META', 'LINK'];
+const ignoreTags = ['SCRIPT', 'NOSCRIPT', 'STYLE', 'META', 'LINK'];
 
 const get3MostFrequentWords = (node) => {
     const map = new Map();
