@@ -58,14 +58,20 @@ const init = async () => {
             for (const url of urls) {
                 let color, text;
                 try {
-                    const html = parse(await (await fetch(url)).text());
-                    const body = html.querySelector('body');
+                    const res = await fetch(url)
+                    const blob = await res.blob();
+                    if (!blob.type.includes('text/html')) {
+                        color = 'red'
+                        text = 'Only html urls are valid'
+                    } else {
+                        const html = parse(await blob.text())
+                        const body = html.querySelector('body');
 
-                    const words = get3MostFrequentWords(body);
+                        const words = get3MostFrequentWords(body);
 
-                    color = 'blue';
-                    text = words.length ? words.join(' | ') : 'No words have been found';
-
+                        color = 'blue';
+                        text = words.length ? words.join(' | ') : 'No words have been found';
+                    }
                 } catch (e) {
                     if (e instanceof TypeError && e.message === 'fetch failed') {
                         color = 'red'
