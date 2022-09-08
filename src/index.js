@@ -2,38 +2,14 @@
 
 const Hapi = require('@hapi/hapi');
 const Joi = require('joi');
-const { Readable } = require('stream')
-const PDFDocument = require('pdfkit')
-const { parse } = require('node-html-parser')
+const { Readable } = require('stream');
+const PDFDocument = require('pdfkit');
+const { JSDOM } = require('jsdom');
+const axios = require('axios');
 
-const ignoreTags = ['SCRIPT', 'NOSCRIPT', 'STYLE', 'META', 'LINK'];
+const { get3MostFrequentWords } = require('./helpers');
 
-const get3MostFrequentWords = (node) => {
-    const map = new Map();
-    const traverseHTML = (node) => {
-        const { childNodes, parentNode } = node;
-        const isValid = !childNodes.length
-            && !ignoreTags.includes(parentNode.tagName)
-            && /\p{L}+/u.test(node.text);
-        if (isValid) {
-            for (const word of node.text.split(/\P{L}+/u)) {
-                if (word.length <= 4) continue;
-                const count = map.get(word) ?? 0;
-                map.set(word, count + 1);
-            }
-        }
-        for (const childNode of childNodes) {
-            traverseHTML(childNode);
-        }
-    }
-    traverseHTML(node);
-    return [...map]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(e => e[0])
-}
-
-const init = async () => {
+(async () => {
 
     const server = Hapi.server({
         port: process.env.PORT ?? 3000,
@@ -46,7 +22,7 @@ const init = async () => {
         handler: async (request, h) => {
             return `Make a POST request with your urls to this route`
         }
-    })
+    });
 
     server.route({
         method: 'POST',
@@ -58,29 +34,21 @@ const init = async () => {
             for (const url of urls) {
                 let color, text;
                 try {
-                    const res = await fetch(url)
-                    const blob = await res.blob();
-                    if (!blob.type.includes('text/html')) {
-                        color = 'red'
-                        text = 'Only html urls are valid'
-                    } else {
-                        const html = parse(await blob.text())
-                        const body = html.querySelector('body');
+                    const { data, headers } = await axios.get(url);
 
-                        const words = get3MostFrequentWords(body);
+                    if (!headers['content-type'].includes('text/html')) {
+                        color = 'red';
+                        text = 'Only html urls are valid';
+                    } else {
+                        const dom = new JSDOM(data);
+                        const words = get3MostFrequentWords(dom);
 
                         color = 'blue';
                         text = words.length ? words.join(' | ') : 'No words have been found';
                     }
                 } catch (e) {
-                    if (e instanceof TypeError && e.message === 'fetch failed') {
-                        color = 'red'
-                        text = `Couldn't fetch the website`
-                    } else {
-                        // Unhandled error
-                        console.error(e)
-                    }
-
+                    color = 'red';
+                    text = `Couldn't fetch the website`;
                 }
                 // Put the url on the pdf
                 doc
@@ -98,7 +66,7 @@ const init = async () => {
             doc.end();
             return h
                 .response(new Readable().wrap(doc.pipe(request.raw.res)))
-                .type('application/pdf')
+                .type('application/pdf');
 
         },
         options: {
@@ -114,14 +82,9 @@ const init = async () => {
 
     await server.start();
     console.log(`Server running on ${server.info.uri}`);
-};
+})();
 
 process.on('unhandledRejection', (err) => {
-    console.error(err);
-    process.exit(1);
-});
-
-init().catch(err => {
     console.error(err);
     process.exit(1);
 });

@@ -28,7 +28,7 @@ $ docker run -p 3000:3000 --name url-parser -d url-parser
 ```console
 curl -X POST \
 -H 'Content-Type: application/json' \
--d '{ "urls": ["https://yandex.ru", "https://habr.ru", "https://doesntexist.asdf"] }' \
+-d '{ "urls": ["https://yandex.ru", "https://habr.ru", "https://doesntexist.asdf", "https://twitch.tv"] }' \
 http://localhost:3000/ > urls.pdf
 ```
 Pdf файл сохранился в `urls.pdf`
