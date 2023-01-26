@@ -9,11 +9,12 @@ const axios = require('axios');
 
 const { get3MostFrequentWords } = require('./helpers');
 
-(async () => {
+const FONT_FILEPATH = './font.ttf';
 
+(async () => {
     const server = Hapi.server({
         port: process.env.PORT ?? 3000,
-        host: process.env.HOST ?? 'localhost'
+        host: process.env.HOST ?? 'localhost',
     });
 
     server.route({
@@ -21,16 +22,16 @@ const { get3MostFrequentWords } = require('./helpers');
         path: '/',
         handler: async (request, h) => {
             return `Make a POST request with your urls to this route`
-        }
+        },
     });
 
     server.route({
         method: 'POST',
         path: '/',
         handler: async (request, h) => {
-            const { urls } = request.payload
+            const { urls } = request.payload;
             const doc = new PDFDocument();
-            doc.font('./font.ttf').fontSize(16);
+            doc.font(FONT_FILEPATH).fontSize(16);
             for (const url of urls) {
                 let color, text;
                 try {
