@@ -6,6 +6,10 @@ const { Readable } = require('stream');
 const PDFDocument = require('pdfkit');
 const { JSDOM } = require('jsdom');
 const axios = require('axios');
+const Inert = require('@hapi/inert');
+const Vision = require('@hapi/vision');
+const HapiSwagger = require('hapi-swagger');
+const PackageJSON = require('../package.json');
 
 const { getMostFrequentWords } = require('./helpers');
 
@@ -18,18 +22,34 @@ const DEFAULT_WORD_COUNT = 3;
         host: process.env.HOST ?? 'localhost',
     });
 
+    const swaggerOptions = {
+        info: {
+            title: PackageJSON.name,
+            version: PackageJSON.version,
+        },
+    };
+
+    await server.register([
+        Inert,
+        Vision,
+        {
+            plugin: HapiSwagger,
+            options: swaggerOptions,
+        },
+    ]);
+
     server.route({
         method: 'GET',
         path: '/',
-        handler: async (request, h) => {
-            return `Make a POST request with your urls to this route`
+        handler: async (request, reply) => {
+            return reply.redirect('/documentation');
         },
     });
 
     server.route({
         method: 'POST',
         path: '/',
-        handler: async (request, h) => {
+        handler: async (request, reply) => {
             const { urls, wordCount } = request.payload;
             const doc = new PDFDocument();
             doc.font(FONT_FILEPATH).fontSize(16);
@@ -85,7 +105,8 @@ const DEFAULT_WORD_COUNT = 3;
                         .min(1)
                         .default(DEFAULT_WORD_COUNT),
                 })
-            }
+            },
+            tags: ['api'],
         }
     })
 
