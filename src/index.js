@@ -7,9 +7,10 @@ const PDFDocument = require('pdfkit');
 const { JSDOM } = require('jsdom');
 const axios = require('axios');
 
-const { get3MostFrequentWords } = require('./helpers');
+const { getMostFrequentWords } = require('./helpers');
 
 const FONT_FILEPATH = './font.ttf';
+const DEFAULT_WORD_COUNT = 3;
 
 (async () => {
     const server = Hapi.server({
@@ -29,7 +30,7 @@ const FONT_FILEPATH = './font.ttf';
         method: 'POST',
         path: '/',
         handler: async (request, h) => {
-            const { urls } = request.payload;
+            const { urls, wordCount } = request.payload;
             const doc = new PDFDocument();
             doc.font(FONT_FILEPATH).fontSize(16);
             for (const url of urls) {
@@ -42,12 +43,13 @@ const FONT_FILEPATH = './font.ttf';
                         text = 'Only html urls are valid';
                     } else {
                         const dom = new JSDOM(data);
-                        const words = get3MostFrequentWords(dom);
+                        const words = getMostFrequentWords(dom, wordCount);
 
                         color = 'blue';
                         text = words.length ? words.join(' | ') : 'No words have been found';
                     }
                 } catch (e) {
+                    console.log(e);
                     color = 'red';
                     text = `Couldn't fetch the website`;
                 }
@@ -73,9 +75,15 @@ const FONT_FILEPATH = './font.ttf';
         options: {
             validate: {
                 payload: Joi.object({
-                    urls: Joi.array().items(
-                        Joi.string().uri()
-                    ).min(1)
+                    urls: Joi
+                        .array()
+                        .items(Joi.string().uri())
+                        .required()
+                        .min(1),
+                    wordCount: Joi
+                        .number()
+                        .min(1)
+                        .default(DEFAULT_WORD_COUNT),
                 })
             }
         }

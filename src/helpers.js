@@ -6,7 +6,7 @@ const isElementValid = (dom, element) => (
     element.children.length === 0 && isElementVisible(dom, element) && /\p{L}+/u.test(element.textContent)
 )
 
-exports.get3MostFrequentWords = (dom) => {
+exports.getMostFrequentWords = (dom, wordCount) => {
     const { body } = dom.window.document;
     const map = new Map();
     const traverseDOM = (element) => {
@@ -25,6 +25,6 @@ exports.get3MostFrequentWords = (dom) => {
     traverseDOM(body);
     return [...map]
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
+        .slice(0, wordCount)
         .map(e => e[0]);
 }
